@@ -36,9 +36,7 @@ jobs:
         with:
           distribution: 'zulu'
           java-version: '17'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+          cache: 'gradle'
 
       - name: Install dependencies
         run: npm ci || npm install
@@ -46,41 +44,37 @@ jobs:
       - name: Build Web Application
         run: npm run build
 
-      - name: Install Capacitor CLI & Android
+      - name: Sync Web Assets to Android Platform
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Initialize Capacitor for Android 5.0+ (API 21+)
-        run: |
-          npx cap init "Quitter Plus" "com.andarer.quitterplus" --web-dir dist || true
-          npx cap add android || true
-          
-          # Force minSdkVersion 21 (Android 5.0 Lollipop) in variables.gradle
-          if [ -f android/variables.gradle ]; then
-            sed -i 's/minSdkVersion = [0-9]*/minSdkVersion = 21/g' android/variables.gradle || true
-          fi
-          
           npx cap sync android
 
       - name: Build Android APK with Gradle
         working-directory: android
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease || ./gradlew assembleDebug
+          ./gradlew assembleRelease --no-daemon --stacktrace || ./gradlew assembleDebug --no-daemon --stacktrace
 
-      - name: Locate and Rename Output APK
+      - name: Locate and Prepare Output APK
         id: prepare_apk
         run: |
-          RAW_APK=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
-          echo "Found raw APK at: $RAW_APK"
+          mkdir -p release_output
+          APK_FILE=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ Ошибка: APK файл не найден в android/app/build/outputs/apk!"
+            exit 1
+          fi
+          echo "✅ Найден скомпилированный APK: $APK_FILE"
+          
           VERSION_TAG="${{ github.ref_name }}"
           if [ -z "$VERSION_TAG" ] || [ "$VERSION_TAG" = "main" ] || [ "$VERSION_TAG" = "master" ]; then
             VERSION_TAG="${{ github.event.inputs.release_version || 'v1.2.0' }}"
           fi
-          FINAL_APK_NAME="QuitterPlus-${VERSION_TAG}-android5.0+.apk"
-          cp "$RAW_APK" "./$FINAL_APK_NAME"
-          echo "apk_path=./$FINAL_APK_NAME" >> $GITHUB_OUTPUT
+          
+          OUTPUT_APK="release_output/QuitterPlus-${VERSION_TAG}-android5.0+.apk"
+          cp "$APK_FILE" "$OUTPUT_APK"
+          echo "apk_path=$OUTPUT_APK" >> $GITHUB_OUTPUT
           echo "version_tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+          ls -lh release_output/
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
@@ -101,15 +95,14 @@ jobs:
           echo "### 📦 Что нового в этом релизе:" >> release_notes.md
           echo "" >> release_notes.md
           
-          # Parse conventional commits
           git log -n 25 --pretty=format:"* %s (%h)" >> release_notes.md || echo "* Первоначальный стабильный релиз" >> release_notes.md
           
           echo "" >> release_notes.md
           echo "---" >> release_notes.md
           echo "### 📲 Инструкция по установке:" >> release_notes.md
-          echo "1. Скачайте файл \`${{ steps.prepare_apk.outputs.apk_path }}\` ниже в разделе Assets." >> release_notes.md
-          echo "2. На Android разрешите установку из неизвестных источников при запросе." >> release_notes.md
-          echo "3. Откройте файл и нажмите «Установить»." >> release_notes.md
+          echo "1. Скачайте файл \`QuitterPlus-${VERSION}-android5.0+.apk\` ниже в блоке Assets." >> release_notes.md
+          echo "2. На Android разрешите установку из этого источника." >> release_notes.md
+          echo "3. Откройте файл для установки." >> release_notes.md
 
       - name: Publish GitHub Release with Ready APK
         uses: softprops/action-gh-release@v2
