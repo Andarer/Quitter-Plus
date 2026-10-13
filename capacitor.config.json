@@ -1,0 +1,15 @@
+{
+  "appId": "com.andarer.quitterplus",
+  "appName": "Quitter Plus",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "buildOptions": {
+      "keystorePath": "",
+      "keystoreAlias": ""
+    }
+  }
+}

@@ -1,0 +1,36 @@
+name: Auto Generate Changelog
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-changelog:
+    name: Generate Conventional Changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog with Git Cliff / Conventional Commits
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --verbose --latest
+        env:
+          OUTPUT: CHANGELOG.md
+
+      - name: Commit & Push Updated Changelog
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md || true
+          git commit -m "docs(changelog): update changelog for ${{ github.ref_name }} [skip ci]" || echo "No changes to commit"
+          git push origin HEAD:${{ github.ref_name }} || true
