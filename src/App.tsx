@@ -374,7 +374,7 @@ export default function App() {
             </button>
             <span>·</span>
             <button onClick={() => setCurrentTab('cicd')} className="hover:text-slate-200 transition">
-              GitHub CI/CD & APK
+              Релизы APK (Android 5.0+) & GitHub
             </button>
             <span>·</span>
             <button onClick={() => setCurrentTab('help')} className="hover:text-slate-200 transition">

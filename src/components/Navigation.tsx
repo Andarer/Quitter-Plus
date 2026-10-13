@@ -32,7 +32,7 @@ export const Navigation: React.FC<NavigationProps> = ({
       badge: `${unlockedCount}/${totalAchievements}` 
     },
     { id: 'help', label: 'Справка & SOS', icon: HelpCircle },
-    { id: 'cicd', label: 'CI/CD & APK', icon: GitBranch, badge: 'v1.2' },
+    { id: 'cicd', label: 'Релизы & GitHub', icon: GitBranch, badge: 'APK (Android 5.0+)' },
   ];
 
   return (

@@ -1,367 +1,234 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   GitBranch, 
-  Terminal, 
-  CheckCircle, 
-  Copy, 
-  Check, 
-  Smartphone, 
+  ExternalLink, 
   Download, 
-  Cpu, 
-  ShieldCheck, 
-  FileCode, 
-  Sparkles,
+  Smartphone, 
+  CheckCircle, 
+  Github, 
+  Bug, 
+  BookOpen, 
+  Sparkles, 
+  Layers,
+  ShieldCheck,
+  Cpu,
   GitCommit
 } from 'lucide-react';
 import { APP_CHANGELOG } from '../constants/initialData';
 
 export const CiCdReleaseCenter: React.FC = () => {
-  const [selectedWorkflow, setSelectedWorkflow] = useState<'release_apk' | 'changelog' | 'ci' | 'capacitor'>('release_apk');
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-  const handleCopy = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedKey(id);
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const codeSnippets = {
-    release_apk: `name: Build and Release Android APK
-
-on:
-  push:
-    tags:
-      - 'v*.*.*'
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  build-apk:
-    name: Build Android APK & GitHub Release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Install dependencies
-        run: npm ci || npm install
-
-      - name: Build Web Application
-        run: npm run build
-
-      - name: Install Capacitor Android CLI
-        run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Initialize & Sync Capacitor Android
-        run: |
-          npx cap init "Quitter Plus" "com.andarer.quitterplus" --web-dir dist || true
-          npx cap add android || true
-          npx cap sync android
-
-      - name: Build Android Release APK with Gradle
-        working-directory: android
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleRelease || ./gradlew assembleDebug
-
-      - name: Locate Output APK
-        id: find_apk
-        run: |
-          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -n 1)
-          echo "Found APK at: $APK_PATH"
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-
-      - name: Upload APK as Workflow Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: QuitterPlus-Release-APK
-          path: \${{ steps.find_apk.outputs.apk_path }}
-          retention-days: 30
-
-      - name: Generate Changelog from Commits
-        id: changelog
-        run: |
-          echo "### Изменения в релизе \${{ github.ref_name }}" > release_notes.md
-          echo "" >> release_notes.md
-          echo "Сгенерировано автоматически на основе коммитов:" >> release_notes.md
-          git log -n 15 --pretty=format:"* %s (%h)" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "---" >> release_notes.md
-          echo "**Автор:** Andárer" >> release_notes.md
-
-      - name: Publish GitHub Release with APK
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          body_path: release_notes.md
-          files: \${{ steps.find_apk.outputs.apk_path }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}`,
-
-    changelog: `name: Auto Generate Changelog
-
-on:
-  release:
-    types: [published]
-  workflow_dispatch:
-
-permissions:
-  contents: write
-
-jobs:
-  update-changelog:
-    name: Generate Conventional Changelog
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate Changelog with Git Cliff / Conventional Commits
-        uses: orhun/git-cliff-action@v3
-        with:
-          config: cliff.toml
-          args: --verbose --latest
-        env:
-          OUTPUT: CHANGELOG.md
-
-      - name: Commit & Push Updated Changelog
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md || true
-          git commit -m "docs(changelog): update changelog for \${{ github.ref_name }} [skip ci]" || echo "No changes"
-          git push origin HEAD:\${{ github.ref_name }} || true`,
-
-    ci: `name: CI Pipeline
-
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  test-and-build:
-    name: Test, Lint and Build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci || npm install
-
-      - name: TypeScript Typecheck & Lint
-        run: npm run lint
-
-      - name: Production Build Verification
-        run: npm run build
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: quitter-plus-web-dist
-          path: dist/
-          retention-days: 7`,
-
-    capacitor: `{
-  "appId": "com.andarer.quitterplus",
-  "appName": "Quitter Plus",
-  "webDir": "dist",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
-  }
-}`,
-  };
-
-  const commitTypesGuide = [
-    { type: 'feat', label: 'Новая функциональность', color: 'text-emerald-400 bg-emerald-950/40 border-emerald-500/20' },
-    { type: 'fix', label: 'Исправление ошибок', color: 'text-rose-400 bg-rose-950/40 border-rose-500/20' },
-    { type: 'perf', label: 'Оптимизация быстродействия', color: 'text-cyan-400 bg-cyan-950/40 border-cyan-500/20' },
-    { type: 'ci', label: 'GitHub CI/CD и пайплайны', color: 'text-amber-400 bg-amber-950/40 border-amber-500/20' },
-    { type: 'docs', label: 'Документация и справка', color: 'text-purple-400 bg-purple-950/40 border-purple-500/20' },
-  ];
+  const GITHUB_REPO_URL = 'https://github.com/andarer/quitter-plus';
+  const GITHUB_RELEASES_URL = 'https://github.com/andarer/quitter-plus/releases';
+  const GITHUB_ISSUES_URL = 'https://github.com/andarer/quitter-plus/issues';
+  const ORIGINAL_PROJECT_URL = 'https://github.com/brandonp2412/Quitter';
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/20 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* Hero: Ready APK Release Banner */}
+      <div className="rounded-2xl p-6 bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-500/30 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
-            <GitBranch className="w-4 h-4" />
-            Автоматизация релизов и непрерывная интеграция
+          <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1">
+            <Smartphone className="w-4 h-4" />
+            Официальные сборки для Android 5.0+ (API 21+)
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            CI/CD Pipelines & Сборка Android APK
+            Готовые релизы в GitHub Репозитории
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 max-w-xl mt-1 leading-relaxed">
-            Репозиторий укомплектован полным набором пайплайнов GitHub Actions: автосборка установочного APK релиза, автогенерация Changelog по коммитам и проверка кода.
+            Скомпилированные установочные файлы <strong>.APK</strong> собираются автоматическими пайплайнами GitHub Actions и публикуются прямо в релизах репозитория.
           </p>
+
+          <div className="flex flex-wrap items-center gap-2 mt-4">
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 font-semibold flex items-center gap-1.5">
+              <CheckCircle className="w-3.5 h-3.5" />
+              Android 5.0 Lollipop и новее
+            </span>
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-800 border border-white/10 text-slate-300 font-semibold">
+              Версия: v1.2.0 (Ascent)
+            </span>
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded-lg bg-slate-800 border border-white/10 text-slate-300 font-semibold">
+              Автор: Andárer
+            </span>
+          </div>
         </div>
 
-        <div className="bg-slate-950/70 border border-white/10 p-4 rounded-xl text-center min-w-[200px]">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 font-mono text-lg font-bold">
-            <CheckCircle className="w-5 h-5" />
-            <span>v1.2.0 (Ascent)</span>
-          </div>
-          <div className="text-[10px] text-slate-400 uppercase tracking-wider mt-1">
-            Автор релиза: Andárer
-          </div>
-          <div className="mt-2 text-[10px] font-mono text-indigo-300 bg-indigo-950/60 border border-indigo-500/30 px-2 py-0.5 rounded">
-            Build passing · Ready for APK
-          </div>
+        {/* Big Action Button */}
+        <div className="w-full md:w-auto shrink-0 flex flex-col gap-2.5">
+          <a
+            href={GITHUB_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto py-3.5 px-6 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2.5 transition active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>Скачать APK в GitHub Releases</span>
+            <ExternalLink className="w-4 h-4 opacity-75" />
+          </a>
+
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full sm:w-auto py-2.5 px-4 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-white/10 flex items-center justify-center gap-2 transition"
+          >
+            <Github className="w-4 h-4" />
+            <span>Открыть репозиторий GitHub</span>
+            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+          </a>
         </div>
       </div>
 
-      {/* Release Command Fast Guide */}
-      <div className="p-5 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg space-y-3">
-        <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-emerald-400" />
-          Как запустить автоматическую сборку APK в вашем GitHub:
-        </h3>
+      {/* Official Links & Resources Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <a
+          href={GITHUB_RELEASES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-white/10 hover:border-emerald-500/30 transition shadow-lg flex flex-col justify-between group"
+        >
+          <div>
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Download className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-white mb-1">GitHub Releases</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Готовые APK для загрузки на Android смартфон.
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
+            <span>Перейти к релизам</span>
+            <ExternalLink className="w-3 h-3" />
+          </div>
+        </a>
+
+        <a
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-white/10 hover:border-white/20 transition shadow-lg flex flex-col justify-between group"
+        >
+          <div>
+            <div className="w-9 h-9 rounded-xl bg-slate-800 text-slate-200 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Github className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-white mb-1">Исходный код</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Полный открытый репозиторий, README, CHANGELOG и документация.
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-slate-300 font-semibold">
+            <span>github.com/andarer</span>
+            <ExternalLink className="w-3 h-3" />
+          </div>
+        </a>
+
+        <a
+          href={GITHUB_ISSUES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-white/10 hover:border-white/20 transition shadow-lg flex flex-col justify-between group"
+        >
+          <div>
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Bug className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-white mb-1">Баг-трекер и идеи</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Сообщите об ошибке или предложите новую функцию напрямую разработчику.
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-amber-400 font-semibold">
+            <span>GitHub Issues</span>
+            <ExternalLink className="w-3 h-3" />
+          </div>
+        </a>
+
+        <a
+          href={ORIGINAL_PROJECT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800/90 border border-white/10 hover:border-white/20 transition shadow-lg flex flex-col justify-between group"
+        >
+          <div>
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <BookOpen className="w-4 h-4" />
+            </div>
+            <h4 className="text-sm font-bold text-white mb-1">Оригинал Quitter</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Открытый проект brandonp2412/Quitter, вдохновивший концепцию.
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-1.5 text-xs text-cyan-400 font-semibold">
+            <span>GitHub Quitter</span>
+            <ExternalLink className="w-3 h-3" />
+          </div>
+        </a>
+      </div>
+
+      {/* How GitHub Actions Builds APK (Visual Explainer) */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-slate-900/90 border border-white/10 shadow-lg space-y-4">
+        <div className="flex items-center gap-2">
+          <GitBranch className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-sm font-bold text-white">
+            Как устроен конвейер CI/CD и релизы в репозитории:
+          </h3>
+        </div>
+
         <p className="text-xs text-slate-300 leading-relaxed">
-          Чтобы GitHub Actions скомпилировал APK и прикрепил его к релизу, достаточно отправить тег версии:
+          Все готовые сборки генерируются облачными раннерами GitHub Actions в репозитории проекта без необходимости ручной компиляции:
         </p>
 
-        <div className="p-3 rounded-xl bg-slate-950 font-mono text-xs text-emerald-300 flex items-center justify-between border border-white/5">
-          <span>git tag v1.2.0 && git push origin v1.2.0</span>
-          <button
-            onClick={() => handleCopy('git tag v1.2.0 && git push origin v1.2.0', 'cmd_tag')}
-            className="p-1 rounded text-slate-400 hover:text-white transition"
-            title="Скопировать команду"
-          >
-            {copiedKey === 'cmd_tag' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs text-slate-300">
-          <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
-            <strong className="text-white block mb-1">1. Сборка & Gradle</strong>
-            Пайплайн собирает Vite, инициализирует Capacitor и компилирует нативный Android APK на раннере Ubuntu.
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
-            <strong className="text-white block mb-1">2. Авто-Changelog</strong>
-            Скрипт анализирует коммиты по стандарту Conventional Commits и формирует описание релиза.
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/50 border border-white/5">
-            <strong className="text-white block mb-1">3. Публикация APK</strong>
-            Готовый .apk файл автоматически прикрепляется к GitHub Releases в вашем репозитории.
-          </div>
-        </div>
-      </div>
-
-      {/* Workflow Files Viewer */}
-      <div className="rounded-2xl bg-slate-900/80 border border-white/10 overflow-hidden shadow-lg">
-        <div className="flex flex-wrap items-center justify-between p-4 border-b border-white/10 gap-2 bg-slate-950/40">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            <button
-              onClick={() => setSelectedWorkflow('release_apk')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                selectedWorkflow === 'release_apk'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              release-apk.yml (Сборка APK)
-            </button>
-            <button
-              onClick={() => setSelectedWorkflow('changelog')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                selectedWorkflow === 'changelog'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              auto-changelog.yml (Changelog)
-            </button>
-            <button
-              onClick={() => setSelectedWorkflow('ci')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                selectedWorkflow === 'ci'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              ci.yml (Тесты и Линтинг)
-            </button>
-            <button
-              onClick={() => setSelectedWorkflow('capacitor')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                selectedWorkflow === 'capacitor'
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              capacitor.config.json
-            </button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold font-mono">
+              01
+            </div>
+            <h4 className="text-xs font-bold text-white">Коммит и тег релиза</h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Разработчик отправляет тег версии (<code className="text-emerald-300 font-mono">git tag v1.2.0</code>). Пайплайн <code className="text-slate-300 font-mono">release-apk.yml</code> активируется автоматически.
+            </p>
           </div>
 
-          <button
-            onClick={() => handleCopy(codeSnippets[selectedWorkflow], 'wf_code')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition"
-          >
-            {copiedKey === 'wf_code' ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Скопировано!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Скопировать .yml</span>
-              </>
-            )}
-          </button>
-        </div>
+          <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2">
+            <div className="w-7 h-7 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center text-xs font-bold font-mono">
+              02
+            </div>
+            <h4 className="text-xs font-bold text-white">Сборка Android 5.0+ APK</h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Node.js компилирует веб-приложение, а Gradle собирает нативный Android APK с <code className="text-teal-300 font-mono">minSdkVersion = 21</code> для поддержки старых и новых устройств.
+            </p>
+          </div>
 
-        <div className="p-4 bg-slate-950 font-mono text-xs text-slate-300 overflow-x-auto max-h-[380px]">
-          <pre>{codeSnippets[selectedWorkflow]}</pre>
+          <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 space-y-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xs font-bold font-mono">
+              03
+            </div>
+            <h4 className="text-xs font-bold text-white">Авто-Changelog & Публикация</h4>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Скрипт формирует описание релиза на основе Conventional Commits и прикрепляет готовый файл <code className="text-emerald-300 font-mono">.apk</code> в раздел GitHub Releases.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Automated Changelog Timeline */}
+      {/* Changelog & Releases Timeline */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GitCommit className="w-4 h-4 text-emerald-400" />
             <h3 className="text-sm font-bold text-slate-200">
-              История релизов и автогенерация Changelog
+              История версий и изменений
             </h3>
           </div>
-          <span className="text-[11px] text-slate-400">
-            Формат: Conventional Commits
-          </span>
+          <a
+            href={GITHUB_RELEASES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition"
+          >
+            <span>Все релизы на GitHub</span>
+            <ExternalLink className="w-3 h-3" />
+          </a>
         </div>
 
         <div className="space-y-4">
@@ -380,6 +247,9 @@ jobs:
                       {rel.badge}
                     </span>
                   )}
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Android 5.0+ Compatible
+                  </span>
                 </div>
                 <span className="text-xs text-slate-400 font-mono">
                   {rel.date}
