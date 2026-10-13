@@ -112,7 +112,7 @@ export interface WidgetSettings {
   order: number;
 }
 
-export type AppTheme = 'dark' | 'oled' | 'light' | 'emerald' | 'cyber' | 'sunset';
+export type AppTheme = 'system' | 'dark' | 'oled' | 'light' | 'emerald' | 'cyber' | 'sunset';
 
 export interface UserPreferences {
   theme: AppTheme;

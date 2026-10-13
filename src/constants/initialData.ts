@@ -333,7 +333,7 @@ export const DEFAULT_WIDGETS: WidgetSettings[] = [
 ];
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  theme: 'dark',
+  theme: 'system',
   activeTrackerId: 'tracker_nicotine',
   enableSound: true,
   dailyReminderTime: '20:00',
@@ -382,6 +382,7 @@ export const APP_CHANGELOG: ChangelogRelease[] = [
       { type: 'feat', text: 'Модульная система дашборд-виджетов с кастомизацией и скрытием блоков' },
       { type: 'feat', text: 'Система достижений с 5 уровнями редкости (Бронза → Алмаз) и конфетти' },
       { type: 'feat', text: 'Двусторонняя облачная синхронизация между устройствами по секретному коду' },
+      { type: 'feat', text: 'Поддержка Dark Mode с автоматическим переключением по системным настройкам устройства' },
       { type: 'feat', text: 'Поддержка 6 цветовых тем: Dark, OLED Black, Light, Emerald, Cyber, Sunset' },
       { type: 'ci', text: 'Добавлены пайплайны GitHub Actions для автоматической сборки APK и релизов' },
       { type: 'ci', text: 'Настроена автоматическая генерация Changelog на основе Conventional Commits' },

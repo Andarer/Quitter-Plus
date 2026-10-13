@@ -1,7 +1,9 @@
 {
-  "name": "react-example",
+  "name": "quitter-plus",
+  "version": "1.2.0",
+  "description": "Продвинутый трекер отказа от зависимостей и полезных привычек с виджетами, достижениями и Android 5.0+ APK",
+  "author": "Andárer <andarer86@gmail.com>",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
@@ -11,6 +13,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.1",

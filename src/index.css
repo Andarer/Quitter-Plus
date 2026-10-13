@@ -55,3 +55,83 @@
 .animate-urge-pulse {
   animation: urgePulse 4s ease-in-out infinite;
 }
+
+/* Color Scheme Hints for OS UI */
+.theme-light {
+  color-scheme: light;
+}
+.theme-dark, .theme-oled, .theme-emerald, .theme-cyber, .theme-sunset {
+  color-scheme: dark;
+}
+
+/* Elegant Light Mode Adaptations */
+.theme-light header {
+  background-color: rgba(255, 255, 255, 0.92) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light header .text-white {
+  color: #0f172a !important;
+}
+
+.theme-light header .text-slate-400 {
+  color: #64748b !important;
+}
+
+.theme-light header .bg-slate-900,
+.theme-light header .bg-slate-900\/90,
+.theme-light header .bg-slate-900\/80 {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+.theme-light header .text-slate-200,
+.theme-light header .text-slate-300 {
+  color: #1e293b !important;
+}
+
+.theme-light .bg-slate-900,
+.theme-light .bg-slate-900\/90,
+.theme-light .bg-slate-900\/80,
+.theme-light .bg-slate-900\/60,
+.theme-light .bg-slate-900\/50 {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.04) !important;
+}
+
+.theme-light .bg-slate-950,
+.theme-light .bg-slate-950\/95,
+.theme-light .bg-slate-950\/90,
+.theme-light .bg-slate-950\/85,
+.theme-light .bg-slate-950\/70,
+.theme-light .bg-slate-950\/60,
+.theme-light .bg-slate-950\/50,
+.theme-light .bg-slate-950\/40 {
+  background-color: #f8fafc !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+.theme-light .text-white {
+  color: #0f172a !important;
+}
+
+.theme-light .text-slate-200,
+.theme-light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.theme-light .text-slate-400 {
+  color: #64748b !important;
+}
+
+.theme-light .border-white\/10,
+.theme-light .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.theme-light footer {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}

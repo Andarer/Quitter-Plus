@@ -60,12 +60,55 @@ export default function App() {
 
   const activeTracker = trackers.find((t) => t.id === activeTrackerId) || trackers[0];
 
-  // Theme application
+  // System theme preference detection (Dark / Light)
+  const [systemPrefersDark, setSystemPrefersDark] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => {
+      setSystemPrefersDark(e.matches);
+    };
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+
+  const resolvedTheme: AppTheme = React.useMemo(() => {
+    if (preferences.theme === 'system') {
+      return systemPrefersDark ? 'dark' : 'light';
+    }
+    return preferences.theme;
+  }, [preferences.theme, systemPrefersDark]);
+
+  // Theme application and dynamic meta theme-color update for Android / iOS
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('theme-dark', 'theme-oled', 'theme-light', 'theme-emerald', 'theme-cyber', 'theme-sunset');
-    root.classList.add(`theme-${preferences.theme}`);
-  }, [preferences.theme]);
+    root.classList.remove('theme-system', 'theme-dark', 'theme-oled', 'theme-light', 'theme-emerald', 'theme-cyber', 'theme-sunset');
+    root.classList.add(`theme-${resolvedTheme}`);
+    if (resolvedTheme === 'light') {
+      root.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+    }
+
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      const colors: Record<string, string> = {
+        dark: '#090d16',
+        oled: '#000000',
+        light: '#f5f5f4',
+        emerald: '#031d16',
+        cyber: '#090b14',
+        sunset: '#150d11',
+      };
+      metaThemeColor.setAttribute('content', colors[resolvedTheme] || '#090d16');
+    }
+  }, [resolvedTheme]);
 
   // Save trackers when updated
   const updateTrackers = (next: Tracker[]) => {
@@ -273,7 +316,7 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 flex flex-col justify-between ${getThemeBackground(preferences.theme)}`}>
+    <div className={`min-h-screen transition-colors duration-300 flex flex-col justify-between ${getThemeBackground(resolvedTheme)}`}>
       
       {/* Top Header */}
       <div>
@@ -286,6 +329,8 @@ export default function App() {
           }}
           onOpenNewTrackerModal={() => setIsNewTrackerModalOpen(true)}
           theme={preferences.theme}
+          resolvedTheme={resolvedTheme}
+          systemPrefersDark={systemPrefersDark}
           onChangeTheme={(th) => updatePreferences({ theme: th })}
           onOpenSyncModal={() => setIsSyncModalOpen(true)}
           lastSynced={lastSynced}
